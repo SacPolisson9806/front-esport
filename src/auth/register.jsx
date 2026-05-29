@@ -1,104 +1,70 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
-function Register() {
-  const [pseudo, setPseudo] = useState("");
-  const [email, setEmail] = useState("");
-  const [mot_de_passe, setMotDePasse] = useState(""); // 🔥 même nom que le backend
-  const [message, setMessage] = useState("");
+const API = import.meta.env.VITE_API_URL;
 
-  const handleRegister = async () => {
+export default function Register() {
+  const [form, setForm]       = useState({ pseudo: "", email: "", mot_de_passe: "" });
+  const [msg, setMsg]         = useState(null);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setMsg(null); setLoading(true);
     try {
-      const res = await fetch("http://localhost/esportmanagerbackend/api/Utilisateur/register.php", {
+      const res  = await fetch(`${API}/Utilisateur/utilisateur.php?action=register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pseudo: pseudo,
-          email: email,
-          mot_de_passe: mot_de_passe // 🔥 correspond EXACTEMENT au backend
-        }),
+        credentials: "include",
+        body: JSON.stringify(form),
       });
-
       const data = await res.json();
-      setMessage(data.message);
-    } catch (error) {
-      setMessage("Erreur de connexion au serveur");
-    }
-  };
-
-  const styles = {
-    container: {
-      maxWidth: "400px",
-      margin: "60px auto",
-      padding: "25px",
-      background: "#fff",
-      borderRadius: "10px",
-      boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
-      fontFamily: "Arial, sans-serif"
-    },
-    input: {
-      width: "100%",
-      padding: "12px",
-      margin: "10px 0",
-      border: "1px solid #ccc",
-      borderRadius: "6px",
-      fontSize: "14px"
-    },
-    button: {
-      width: "100%",
-      padding: "12px",
-      background: "#61dafb",
-      border: "none",
-      borderRadius: "6px",
-      fontSize: "16px",
-      cursor: "pointer"
-    },
-    link: {
-      color: "#61dafb",
-      textDecoration: "none"
-    }
+      if (data.success) { setMsg({ type: "success", text: "Compte créé ! Redirection…" }); setTimeout(() => navigate("/login"), 1200); }
+      else setMsg({ type: "error", text: data.message });
+    } catch { setMsg({ type: "error", text: "Erreur serveur" }); }
+    finally  { setLoading(false); }
   };
 
   return (
-    <div style={styles.container}>
-      <h2 style={{ textAlign: "center" }}>Créer un compte</h2>
+    <div className="auth-page">
+      <div className="auth-box">
+        <div className="auth-logo">ESport<span>Hub</span></div>
 
-      <input
-        type="text"
-        placeholder="Nom d'utilisateur"
-        value={pseudo}
-        onChange={e => setPseudo(e.target.value)}
-        style={styles.input}
-      />
+        <div>
+          <p className="auth-title">Créer un compte</p>
+          <p className="auth-subtitle">Rejoins la plateforme</p>
+        </div>
 
-      <input
-        type="email"
-        placeholder="Email"
-        value={email}
-        onChange={e => setEmail(e.target.value)}
-        style={styles.input}
-      />
+        {msg && <p className={`msg msg-${msg.type}`}>{msg.text}</p>}
 
-      <input
-        type="password"
-        placeholder="Mot de passe"
-        value={mot_de_passe}
-        onChange={e => setMotDePasse(e.target.value)}
-        style={styles.input}
-      />
+        <form className="input-group" onSubmit={handleSubmit}>
+          <div className="field">
+            <label>Pseudo</label>
+            <input className="input" placeholder="Ton pseudo" value={form.pseudo}
+              onChange={set("pseudo")} required />
+          </div>
+          <div className="field">
+            <label>Email</label>
+            <input className="input" type="email" placeholder="ton@email.com" value={form.email}
+              onChange={set("email")} required />
+          </div>
+          <div className="field">
+            <label>Mot de passe</label>
+            <input className="input" type="password" placeholder="••••••••" value={form.mot_de_passe}
+              onChange={set("mot_de_passe")} required />
+          </div>
+          <button className="btn btn-primary btn-full btn-lg" type="submit" disabled={loading}>
+            {loading ? "Création…" : "Créer le compte"}
+          </button>
+        </form>
 
-      <button onClick={handleRegister} style={styles.button}>
-        S'inscrire
-      </button>
-
-      <p style={{ textAlign: "center", marginTop: "10px" }}>{message}</p>
-
-      <p style={{ textAlign: "center", marginTop: "15px" }}>
-        Déjà un compte ?{" "}
-        <Link to="/" style={styles.link}>Se connecter</Link>
-      </p>
+        <p className="auth-footer">
+          Déjà inscrit ? <Link to="/login">Se connecter</Link>
+        </p>
+      </div>
     </div>
   );
 }
-
-export default Register;
